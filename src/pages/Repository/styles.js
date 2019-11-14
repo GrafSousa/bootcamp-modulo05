@@ -59,6 +59,28 @@ export const IssueStateFilter = styled.div`
   }
 `;
 
+export const Footer = styled.div`
+  padding-top: 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12;
+
+  button {
+    &[disabled] {
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+    color: #222;
+    border-radius: 4px;
+    outline: 0;
+    border: 0;
+    padding: 8px;
+    font-size: 14px;
+    font-family: Arial, Helvetica, sans-serif;
+  }
+`;
+
 export const IssueList = styled.ul`
   padding-top: 15px;
   margin-top: 30px;

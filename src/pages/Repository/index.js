@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import PropTypes from 'prop-types';
 import api from '../../services/api';
 
-import { Loading, Owner, IssueList, IssueStateFilter } from './styles';
+import { Loading, Owner, IssueList, IssueStateFilter, Footer } from './styles';
 import Container from '../../components/Container';
 
 export default class Repository extends Component {
@@ -25,6 +25,7 @@ export default class Repository extends Component {
       { state: 'closed', label: 'Fechadas', active: false },
     ],
     activeIndex: 0,
+    page: 1,
   };
 
   async componentDidMount() {
@@ -61,10 +62,12 @@ export default class Repository extends Component {
 
   loadIssues = async () => {
     const url = this.getUrl();
-    const { filters, activeIndex } = this.state;
+    const { filters, activeIndex, page } = this.state;
     const response = await api.get(`${url}/issues`, {
       params: {
         state: filters[activeIndex].state,
+        per_page: 5,
+        page,
       },
     });
 
@@ -76,8 +79,23 @@ export default class Repository extends Component {
     this.loadIssues();
   };
 
+  handleFooterClick = async message => {
+    const { page } = this.state;
+
+    await this.setState({ page: message === 'back' ? page - 1 : page + 1 });
+
+    this.loadIssues();
+  };
+
   render() {
-    const { repository, issues, loading, filters, activeIndex } = this.state;
+    const {
+      repository,
+      issues,
+      loading,
+      filters,
+      activeIndex,
+      page,
+    } = this.state;
 
     if (loading) {
       return <Loading>Carregando</Loading>;
@@ -117,6 +135,22 @@ export default class Repository extends Component {
               </div>
             </li>
           ))}
+          <Footer>
+            <button
+              type="button"
+              onClick={() => this.handleFooterClick('back')}
+              disabled={page < 2}
+            >
+              Anterior
+            </button>
+            <span>Página {page}</span>
+            <button
+              type="button"
+              onClick={() => this.handleFooterClick('next')}
+            >
+              Próximo
+            </button>
+          </Footer>
         </IssueList>
       </Container>
     );
