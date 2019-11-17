@@ -1,51 +1,63 @@
-import React, { Component } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FaGithubAlt, FaPlus, FaSpinner } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
+import { useAlert } from 'react-alert';
 
 import api from '../../services/api';
 
 import { Form, SubmitButton, List } from './styles';
 import Container from '../../components/Container';
 
-export default class Main extends Component {
-  state = {
-    newRepo: '',
-    repositories: [],
-    loading: false,
-  };
+function Main() {
+  const [newRepo, setNewRepo] = useState('');
+  const [repositories, setRepositories] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(false);
+  const alert = useAlert();
 
-  componentDidMount() {
-    const repositories = localStorage.getItem('repositories');
+  useEffect(() => {
+    const localStorageRepositories = localStorage.getItem('repositories');
 
-    if (repositories) {
-      this.setState({ repositories: JSON.parse(repositories) });
+    if (localStorageRepositories) {
+      setRepositories(JSON.parse(localStorageRepositories));
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('repositories', JSON.stringify(repositories));
+  }, [repositories]);
+
+  function handleInputChange(e) {
+    setNewRepo(e.target.value);
+    setError(false);
+  }
+
+  function existRepositoryByName() {
+    const existRepository = repositories.find(
+      repository => repository.name.toLowerCase() === newRepo.toLowerCase()
+    );
+
+    if (existRepository) {
+      setLoading(false);
+      throw new Error('Repositório já cadastrado');
     }
   }
 
-  componentDidUpdate(_, prevState) {
-    const { repositories } = this.state;
-    if (prevState.repositories !== repositories) {
-      localStorage.setItem('repositories', JSON.stringify(repositories));
+  function isEmptyRepositoryInput() {
+    if (newRepo === '') {
+      throw new Error('Repositório obrigatório');
     }
   }
 
-  handleInputChange = e => {
-    this.setState({ newRepo: e.target.value });
-  };
-
-  handleSubmit = async e => {
+  async function handleSubmit(e) {
     try {
       e.preventDefault();
 
-      this.setState({ loading: true });
+      isEmptyRepositoryInput();
 
-      const { newRepo, repositories } = this.state;
+      existRepositoryByName();
 
-      repositories.forEach(repository => {
-        if (repository.name === newRepo) {
-          throw new Error('Error teste');
-        }
-      });
+      setLoading(true);
 
       const response = await api.get(`/repos/${newRepo}`);
 
@@ -53,51 +65,49 @@ export default class Main extends Component {
         name: response.data.full_name,
       };
 
-      this.setState({
-        repositories: [...repositories, data],
-        newRepo: '',
-        loading: false,
-      });
+      setRepositories([...repositories, data]);
+      setNewRepo('');
+      setLoading(false);
     } catch (err) {
-      console.log('error: ', err);
+      setError(true);
+      alert.error(err.message);
+      setLoading(false);
     }
-  };
-
-  render() {
-    const { newRepo, repositories, loading } = this.state;
-    return (
-      <Container>
-        <h1>
-          <FaGithubAlt />
-          Repositórios
-        </h1>
-        <Form onSubmit={this.handleSubmit}>
-          <input
-            type="text"
-            placeholder="Adiciona repositório"
-            value={newRepo}
-            onChange={this.handleInputChange}
-          />
-          <SubmitButton loading={loading}>
-            {loading ? (
-              <FaSpinner color="#FFF" size={14} />
-            ) : (
-              <FaPlus color="#FFF" size={14} />
-            )}
-          </SubmitButton>
-        </Form>
-
-        <List>
-          {repositories.map(repository => (
-            <li key={repository.name}>
-              <span>{repository.name}</span>
-              <Link to={`/repository/${encodeURIComponent(repository.name)}`}>
-                Detalhes
-              </Link>
-            </li>
-          ))}
-        </List>
-      </Container>
-    );
   }
+  return (
+    <Container>
+      <h1>
+        <FaGithubAlt />
+        Repositórios
+      </h1>
+      <Form onSubmit={handleSubmit} error={error}>
+        <input
+          type="text"
+          placeholder="Adiciona repositório"
+          value={newRepo}
+          onChange={handleInputChange}
+        />
+        <SubmitButton loading={loading}>
+          {loading ? (
+            <FaSpinner color="#FFF" size={14} />
+          ) : (
+            <FaPlus color="#FFF" size={14} />
+          )}
+        </SubmitButton>
+      </Form>
+
+      <List>
+        {repositories.map(repository => (
+          <li key={repository.name}>
+            <span>{repository.name}</span>
+            <Link to={`/repository/${encodeURIComponent(repository.name)}`}>
+              Detalhes
+            </Link>
+          </li>
+        ))}
+      </List>
+    </Container>
+  );
 }
+
+export { Main };
